@@ -120,3 +120,42 @@ def get_sample_event():
         "latitude": 37.5665,
         "longitude": 126.9780
     }
+# main.py 파일 맨 아래에 그대로 추가하세요.
+
+from fastapi import Body  # 💡 파일 최상단 fastapi import 문에 Body를 추가하거나 여기에 명시 유지가능
+
+# 4. 전체 이벤트 목록 조회 API (실제 Docker DB 연동 완료)
+@app.get("/api/v1/events", response_model=list[EventRead])
+def get_all_events(db: Session = Depends(get_db)):
+    """
+    DB에 누적된 도로 장애물 탐지 이벤트 전체 목록을 최신순(ID 역순)으로 조회합니다.
+    """
+    return db.query(Event).order_by(Event.id.desc()).all()
+
+
+# 5. 관제사 상태 변경 API (2차 보고서 명세 Body 포맷 100% 일치)
+@app.patch("/api/v1/events/{event_id}/status", response_model=EventRead)
+def update_event_status(
+    event_id: int,
+    status: str = Body(
+        ..., 
+        embed=True, 
+        pattern="^(UNCHECKED|CHECKING|COMPLETED|MISIDENTIFIED)$"
+    ),
+    db: Session = Depends(get_db)
+):
+    """
+    특정 이벤트의 처리 상태를 업데이트합니다. 
+    Body 포맷 규격: {"status": "COMPLETED"}
+    """
+    # 1. DB 내 해당 이벤트 존재 여부 검증
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="해당 이벤트를 찾을 수 없습니다.")
+    
+    # 2. 데이터 업데이트 및 트랜잭션 커밋
+    event.status = status
+    db.commit()
+    db.refresh(event)
+    
+    return event
