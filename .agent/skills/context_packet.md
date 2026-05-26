@@ -125,6 +125,7 @@
 - `implementation-prompt-writer` Step 1~5 산출물은 `docs/implementation/08_implementation_prompt_writer_01.md`부터 `docs/implementation/08_implementation_prompt_writer_05.md`까지 저장되어 있다.
 - 최종 개발 지시서는 `docs/implementation/08_implementation_prompt_writer_05.md`이다.
 - 프론트 API 계약 패치 문서는 `docs/contracts/09_frontend_api_contract_01.md`에 저장되어 있다.
+- 백엔드 API 사용법 가이드는 `docs/backend/09_backend_implementation_06.md`에 저장되어 있다.
 - AI 파트 전달 폴더는 `ai_model/`이며, 학습 코드(`main.py`), 추론 코드(`test.py`), 테스트 이미지, 학습 결과, `best.pt`/`last.pt`, 테스트 결과 JSON을 포함한다.
 - resume 이후 대화 요약 로그는 `codex-session_2.log`에 저장되어 있다.
 
