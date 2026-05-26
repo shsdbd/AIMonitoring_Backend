@@ -1,6 +1,9 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from ai.yolo_detector import DetectedObject
 from models.comment import Comment
 from models.equipment import Equipment
 from models.event import Event
@@ -30,6 +33,73 @@ SPECIES_LABELS = {
 }
 
 SYSTEM_OPERATOR_USERNAME = "system_operator"
+
+
+def create_detected_events(
+    db: Session,
+    camera_id: str,
+    latitude: float,
+    longitude: float,
+    image_url: str,
+    detected_objects: list[DetectedObject],
+    location_name: str | None = None,
+    equipment_type: str = "CCTV",
+) -> list[RoadkillEvent]:
+    equipment = _get_or_create_equipment(
+        db=db,
+        camera_id=camera_id,
+        location_name=location_name,
+        equipment_type=equipment_type,
+    )
+
+    roadkill_events: list[RoadkillEvent] = []
+    now = datetime.now(timezone.utc)
+
+    for detected_object in detected_objects:
+        event = _find_repeat_event(
+            db=db,
+            equipment_id=equipment.id,
+            detected_object=detected_object,
+            now=now,
+        )
+
+        if event is None:
+            event = Event(
+                equipment_id=equipment.id,
+                user_id=None,
+                obstacle_type="ANIMAL",
+                species=detected_object.species,
+                confidence=detected_object.confidence,
+                latitude=latitude,
+                longitude=longitude,
+                status="UNCHECKED",
+                image_url=image_url,
+                bbox_x=detected_object.bbox_x,
+                bbox_y=detected_object.bbox_y,
+                bbox_width=detected_object.bbox_width,
+                bbox_height=detected_object.bbox_height,
+                priority=3,
+                detected_at=now,
+                repeat_detection=False,
+                repeat_count=0,
+                last_detected_at=now,
+            )
+            db.add(event)
+            db.flush()
+        else:
+            event.repeat_count += 1
+            event.repeat_detection = True
+            event.priority = _priority_from_repeat_count(event.repeat_count)
+            event.last_detected_at = now
+            event.confidence = detected_object.confidence
+            event.latitude = latitude
+            event.longitude = longitude
+            event.image_url = image_url
+
+        roadkill_events.append(_to_roadkill_event(event, equipment))
+
+    db.commit()
+    return roadkill_events
 
 
 def list_events(db: Session) -> list[RoadkillEvent]:
@@ -118,3 +188,80 @@ def _get_system_operator_id(db: Session) -> int:
         db.add(user)
         db.flush()
     return user.id
+
+
+def _get_or_create_equipment(
+    db: Session,
+    camera_id: str,
+    location_name: str | None,
+    equipment_type: str,
+) -> Equipment:
+    equipment = db.query(Equipment).filter(Equipment.camera_id == camera_id).first()
+    if equipment is not None:
+        return equipment
+
+    equipment = Equipment(
+        camera_id=camera_id,
+        equipment_type=equipment_type,
+        location_name=location_name or "미지정 위치",
+        status="ACTIVE",
+    )
+    db.add(equipment)
+    db.flush()
+    return equipment
+
+
+def _find_repeat_event(
+    db: Session,
+    equipment_id: int,
+    detected_object: DetectedObject,
+    now: datetime,
+) -> Event | None:
+    candidates = (
+        db.query(Event)
+        .filter(Event.equipment_id == equipment_id)
+        .filter(Event.species == detected_object.species)
+        .order_by(Event.last_detected_at.desc())
+        .all()
+    )
+
+    detected_center = _bbox_center(
+        detected_object.bbox_x,
+        detected_object.bbox_y,
+        detected_object.bbox_width,
+        detected_object.bbox_height,
+    )
+
+    for event in candidates:
+        event_center = _bbox_center(
+            event.bbox_x,
+            event.bbox_y,
+            event.bbox_width,
+            event.bbox_height,
+        )
+        if event_center != detected_center:
+            continue
+
+        last_detected_at = _as_aware_utc(event.last_detected_at)
+        if now - last_detected_at >= timedelta(minutes=1):
+            return event
+
+    return None
+
+
+def _bbox_center(x: float, y: float, width: float, height: float) -> tuple[float, float]:
+    return (round(x + width / 2, 6), round(y + height / 2, 6))
+
+
+def _as_aware_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _priority_from_repeat_count(repeat_count: int) -> int:
+    if repeat_count <= 0:
+        return 3
+    if repeat_count == 1:
+        return 2
+    return 1

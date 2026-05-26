@@ -23,6 +23,7 @@
 | 이벤트 목록 조회 | `GET` | `/api/events` |
 | 이벤트 상세 조회 | `GET` | `/api/events/{eventId}` |
 | 이벤트 상태 변경 | `PATCH` | `/api/events/{eventId}/status` |
+| AI 탐지 이벤트 생성 | `POST` | `/api/events/detect` |
 | 정적 이미지 조회 | `GET` | `/static/images/...` |
 
 기존 프로토타입의 `/api/v1/events` 계열 경로는 초기 개발 산물이다. 구현 시 `/api/events`를 공식 경로로 맞추며, 필요하면 개발 기간 동안 `/api/v1/events`를 호환 라우트로 유지할 수 있다.
@@ -188,3 +189,25 @@ AI 서버를 별도로 띄우지 않고, 전달받은 `ai_model` 폴더의 YOLOv
 - 이미지 URL: 같은 이미지에서 파생된 Event들은 동일한 `imageUrl` 공유
 - bbox 변환: `ai_model/test.py`의 중심점 기준 0~1 정규화 bbox를 좌상단 기준 0~100 퍼센트 좌표로 변환
 - priority: 백엔드가 반복 감지 횟수 기준으로 산출
+
+## 15. AI 탐지 이벤트 생성 API
+
+`POST /api/events/detect`는 백엔드 내부 YOLO 모델을 실행해 이벤트를 생성한다.
+
+요청 형식은 `multipart/form-data`다.
+
+| 필드 | 필수 | 설명 |
+| --- | --- | --- |
+| `cameraId` | 필수 | CCTV/장비 표시 식별자 |
+| `latitude` | 필수 | 탐지 위치 위도 |
+| `longitude` | 필수 | 탐지 위치 경도 |
+| `locationName` | 선택 | 프론트 `location`으로 내려줄 위치명 |
+| `image` | 필수 | `png`, `jpg`, `jpeg` 이미지 |
+
+`cameraId`에 해당하는 장비가 없으면 백엔드가 `equipment` 데이터를 자동 생성한다.
+
+- `equipment_type`: `CCTV`
+- `location_name`: `locationName`이 있으면 해당 값, 없으면 `미지정 위치`
+- `status`: `ACTIVE`
+
+응답은 `RoadkillEvent[]`다. 한 이미지에서 여러 객체가 탐지되면 여러 이벤트가 생성될 수 있다. 탐지 객체가 없으면 빈 배열을 반환한다.

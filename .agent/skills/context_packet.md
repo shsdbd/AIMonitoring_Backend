@@ -4,7 +4,7 @@
 
 ## 1. 현재 단계 (Current Stage)
 - **진행 중인 스킬:** `backend-implementation`
-- **현재 목표:** DB/Model 정합성 1차 구현과 공식 프론트 연동 API 골격 구현을 완료했다. 다음 구현은 AI 탐지 이벤트 생성, YOLO 추론 모듈 통합, 반복 감지/priority 계산 실제 적용, DB 초기화/마이그레이션 전략 확인이다.
+- **현재 목표:** DB/Model 정합성, 공식 프론트 연동 API 골격, AI 탐지 이벤트 생성 API, YOLO 추론 모듈 통합, 반복 감지/priority 계산 실제 적용을 구현했다. 다음 작업은 EC2 Docker 환경에서 `ultralytics` 설치/모델 로드/실제 이미지 업로드 검증이다.
 - **주의:** 현재 코드 기준 공식 API 경로는 `/api/events` 계열이다. 기존 `/api/v1/events` 계열은 제거되었으며, 필요하면 호환 라우트를 별도 결정해야 한다. 기존 PostgreSQL 볼륨에 예전 스키마가 남아 있으면 `create_all()`만으로는 새 컬럼이 반영되지 않으므로 실제 서버 검증 전 DB 초기화 또는 마이그레이션 전략이 필요하다.
 
 ## 2. 프로젝트 개요 및 초기 아이디어
@@ -89,6 +89,7 @@
 - 반복 감지는 백엔드가 계산한다. 같은 `camera_id`, 같은 `species`, bbox 중심점이 완전히 동일한 객체가 1분 이상 간격으로 다시 감지되면 기존 이벤트를 갱신한다.
 - priority는 백엔드가 반복 감지 횟수 기준으로 산출한다. 최초 감지는 `repeat_count=0`, `priority=3`; 1회 반복 감지는 `repeat_count=1`, `priority=2`; 2회 이상 반복 감지는 `repeat_count>=2`, `priority=1`로 정한다.
 - AI/백엔드 팀원 의견으로 confidence 임계값 미만은 `미확인`, 임계값 이상은 `출동 요청`으로 초기 상태를 잡는 방안이 제안되었으나, 현재 priority/riskLevel은 반복 감지 횟수 기준으로 확정했다. status 초기값과 priority는 별도 개념으로 관리한다.
+- `POST /api/events/detect`에서 없는 `cameraId`는 백엔드가 `Equipment`로 자동 생성한다. 기본 `equipment_type`은 `CCTV`, `status`는 `ACTIVE`, `locationName`이 없으면 `location_name`은 `미지정 위치`로 저장한다.
 
 ## 4. 범위 및 제외 범위 (Scope)
 - **포함:** (진행하면서 확정할 예정)
@@ -99,7 +100,7 @@
 - **가정:** AI 서버를 별도로 띄우지 않고, 전달받은 `ai_model`의 YOLO 추론 로직을 FastAPI 백엔드 내부 모듈로 통합한다. 단, `ai_model` 원본 파일은 수정하지 않고 참조용/원본 산출물로 보존한다.
 - **가정:** 반복 감지 여부(`repeatDetection`), 반복 횟수(`repeat_count`), 마지막 감지 시각(`lastDetectedAt`)은 백엔드가 동일 `camera_id`, 동일 `species`, 1분 이상 간격, bbox 중심점 완전 동일 기준으로 계산한다.
 - **질문:** 프론트엔드 실시간 알림 방식(SSE vs Polling) 및 관제사 인증 방식 미정.
-- **질문:** 백엔드 내장 YOLO 추론 API가 이미지를 `multipart/form-data`로 받을지, 기존 저장 이미지 경로를 입력으로 받을지 확정해야 한다.
+- **확정:** 백엔드 내장 YOLO 추론 API는 `multipart/form-data`로 이미지를 받는다. 공식 경로는 `POST /api/events/detect`다.
 - **질문:** `ai_model` 실행에 필요한 Python, `ultralytics`, `torch` 버전 및 EC2 CPU 추론 속도는 아직 확인해야 한다.
 - **질문:** 관제 화면의 실시간 영상 소스를 백엔드가 관리할지, 프론트엔드가 별도로 연결할지 미정이다.
 - **질문:** 처리 기록 작성/조회 기능을 MVP에 포함할지, 상태 변경 이후 후순위로 둘지 미정이다.
@@ -143,11 +144,19 @@
   - `dependencies/database.py`, `services/event_service.py`, `routers/events.py`, `routers/health.py`를 추가했다.
   - `main.py`는 CORS, static mount, router 등록, startup 초기화 중심으로 정리했다.
   - 현재 라우트는 `/`, `/api/events`, `/api/events/{event_id}`, `/api/events/{event_id}/status`, `/static`이다.
+- AI 탐지 이벤트 생성 API 및 YOLO 추론 모듈 통합을 구현했다.
+  - `ai/yolo_detector.py`를 추가하고 `ai_model/runs/animal_detector_yolov8n/weights/best.pt`를 로드하도록 했다.
+  - `storage/image_storage.py`를 추가하고 `png`, `jpg`, `jpeg` 업로드 이미지를 `/static/images/{YYYY}/{MM}/{DD}/`에 저장하도록 했다.
+  - `POST /api/events/detect`를 추가했다. 입력은 `cameraId`, `latitude`, `longitude`, 선택 `locationName`, `image`다.
+  - 없는 `cameraId`는 `Equipment`로 자동 생성한다.
+  - 같은 장비, 같은 종, bbox 중심점 완전 동일, 1분 이상 간격이면 기존 이벤트의 `repeat_count`, `repeat_detection`, `priority`, `last_detected_at`을 갱신한다.
+  - `requirements.txt`에 `ultralytics==8.3.38`을 추가했다.
 - 검증 결과:
   - `venv/bin/python -m compileall database.py models schemas dependencies services routers main.py` 성공.
-  - `venv/bin/python -c "from main import app; print(sorted([route.path for route in app.routes]))"` 결과에 공식 API 경로가 포함됨.
+  - `venv/bin/python -c "from main import app; print(sorted([route.path for route in app.routes]))"` 결과에 공식 API 경로와 `/api/events/detect`가 포함됨.
   - `venv/bin/python -c "import models; from database import Base; print(sorted(Base.metadata.tables.keys()))"` 결과: `['comments', 'equipment', 'events', 'users']`.
-- 아직 실제 PostgreSQL 통합 검증은 하지 않았다. 기존 Docker 볼륨에 예전 테이블이 남아 있을 가능성이 있으므로 DB 초기화 또는 마이그레이션 적용 후 검증해야 한다.
+- EC2에서 Docker DB 초기화 후 `GET /api/events`가 `[]`를 반환하는 것을 사용자가 확인했다.
+- 아직 실제 이미지 업로드를 통한 YOLO 추론 검증은 하지 않았다. EC2 Docker build 시 `ultralytics`/`torch` 의존성 설치와 `best.pt` 모델 파일 배포가 필요하다.
 - 최근 커밋:
   - `56b132b docs: add implementation prompt artifacts`
   - `239cc23 chore: remove tracked venv and pycache`

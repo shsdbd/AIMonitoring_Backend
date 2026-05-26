@@ -99,6 +99,8 @@
 - **이벤트 목록 API:** 이벤트 목록 조회 공식 경로는 `GET /api/events`로 정한다.
 - **이벤트 상세 API:** 이벤트 상세 조회 공식 경로는 `GET /api/events/{eventId}`로 정한다.
 - **상태 변경 API:** 이벤트 상태 변경 공식 경로는 `PATCH /api/events/{eventId}/status`로 정한다.
+- **AI 탐지 이벤트 생성 API:** AI 탐지 이벤트 생성 공식 경로는 `POST /api/events/detect`로 정한다. 요청은 `multipart/form-data`로 받으며 `cameraId`, `latitude`, `longitude`, 선택 `locationName`, `image`를 사용한다.
+- **장비 자동 생성 정책:** `POST /api/events/detect`에서 `cameraId`에 해당하는 장비가 없으면 백엔드가 `Equipment`를 자동 생성한다. 기본 `equipment_type`은 `CCTV`, `status`는 `ACTIVE`, `location_name`은 요청의 `locationName` 또는 `미지정 위치`로 저장한다.
 - **상태 변경 body:** 상태 변경 요청 body는 `{ status, comment? }` 형태로 정한다. `comment`는 선택값이며, 값이 있으면 처리 기록으로 저장하는 방향을 기본으로 한다.
 - **상태 enum:** 백엔드 내부 상태값은 `UNCHECKED`, `CHECKING`, `DISPATCH_REQUESTED`, `DISPATCHING`, `COMPLETED`, `MISIDENTIFIED` 6개로 정한다. 프론트 `RoadkillEvent.status` 응답에서는 반드시 `미확인`, `확인 중`, `출동 요청`, `출동 중`, `처리 완료`, `오탐 처리` 한글 상태값으로 매핑해 내려준다.
 - **상태 변경 입력값:** 상태 변경 요청 body의 `status`는 프론트가 한글 상태값을 영문 enum으로 변환해서 보내며, 백엔드는 영문 enum을 입력으로 받는다.

@@ -15,3 +15,16 @@ venv/
 
 .env
 .env.local
+
+*.pdf
+*.rtf
+*스크린샷*.png
+erd0519.jpg
+weights_40/
+
+ai_model/**
+!ai_model/
+!ai_model/runs/
+!ai_model/runs/animal_detector_yolov8n/
+!ai_model/runs/animal_detector_yolov8n/weights/
+!ai_model/runs/animal_detector_yolov8n/weights/best.pt
