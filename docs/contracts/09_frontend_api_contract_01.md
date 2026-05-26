@@ -216,7 +216,57 @@ Swagger 테스트 화면에서는 `camera_id`, `location_name`으로 표시되�
 
 응답은 `RoadkillEvent[]`다. 한 이미지에서 여러 객체가 탐지되면 여러 이벤트가 생성될 수 있다. 탐지 객체가 없으면 빈 배열을 반환한다.
 
-## 16. 공통 에러 응답
+## 16. 메모 API
+
+이벤트 메모는 `comments` 테이블과 연결된다. 프론트는 관제 메모를 조회하거나 단독 저장할 수 있다.
+
+### 메모 목록 조회
+
+```http
+GET /api/events/{eventId}/comments
+```
+
+응답 예시:
+
+```json
+[
+  {
+    "id": "1",
+    "eventId": "3",
+    "content": "현장 확인 요청했습니다.",
+    "createdAt": "2026-05-26T12:40:00Z",
+    "writerName": "관제사"
+  }
+]
+```
+
+### 메모 단독 저장
+
+```http
+POST /api/events/{eventId}/comments
+```
+
+Request Body:
+
+```json
+{
+  "content": "현장 확인 요청했습니다."
+}
+```
+
+응답 예시:
+
+```json
+{
+  "id": "1",
+  "eventId": "3",
+  "content": "현장 확인 요청했습니다.",
+  "createdAt": "2026-05-26T12:40:00Z",
+  "writerName": "관제사"
+}
+```
+
+## 17. 공통 에러 응답
 
 백엔드 주요 오류는 다음 형식을 사용한다.
 

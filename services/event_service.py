@@ -8,7 +8,7 @@ from models.comment import Comment
 from models.equipment import Equipment
 from models.event import Event
 from models.user import User
-from schemas.event import BoundingBox, EventStatusUpdate, RoadkillEvent
+from schemas.event import BoundingBox, CommentCreate, CommentRead, EventStatusUpdate, RoadkillEvent
 
 
 STATUS_LABELS = {
@@ -141,6 +141,47 @@ def update_event_status(
     return _to_roadkill_event(event, equipment)
 
 
+def list_event_comments(db: Session, event_id: int) -> list[CommentRead]:
+    event = db.get(Event, event_id)
+    if event is None:
+        raise not_found(
+            error_code="EVENT_NOT_FOUND",
+            message="해당 이벤트를 찾을 수 없습니다.",
+            detail={"event_id": event_id},
+        )
+
+    comments = (
+        db.query(Comment, User)
+        .join(User, Comment.user_id == User.id)
+        .filter(Comment.event_id == event_id)
+        .order_by(Comment.created_at.asc(), Comment.id.asc())
+        .all()
+    )
+    return [_to_comment_read(comment, user) for comment, user in comments]
+
+
+def create_event_comment(db: Session, event_id: int, payload: CommentCreate) -> CommentRead:
+    event = db.get(Event, event_id)
+    if event is None:
+        raise not_found(
+            error_code="EVENT_NOT_FOUND",
+            message="해당 이벤트를 찾을 수 없습니다.",
+            detail={"event_id": event_id},
+        )
+
+    user_id = _get_system_operator_id(db)
+    comment = Comment(
+        event_id=event.id,
+        user_id=user_id,
+        content=payload.content,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    user = db.get(User, user_id)
+    return _to_comment_read(comment, user)
+
+
 def _get_event_with_equipment(db: Session, event_id: int) -> tuple[Event, Equipment]:
     row = (
         db.query(Event, Equipment)
@@ -179,6 +220,16 @@ def _to_roadkill_event(event: Event, equipment: Equipment) -> RoadkillEvent:
             width=event.bbox_width,
             height=event.bbox_height,
         ),
+    )
+
+
+def _to_comment_read(comment: Comment, user: User) -> CommentRead:
+    return CommentRead(
+        id=str(comment.id),
+        eventId=str(comment.event_id),
+        content=comment.content,
+        createdAt=comment.created_at,
+        writerName=_writer_name(user),
     )
 
 
@@ -266,3 +317,9 @@ def _priority_from_repeat_count(repeat_count: int) -> int:
     if repeat_count == 1:
         return 2
     return 1
+
+
+def _writer_name(user: User) -> str:
+    if user.username == SYSTEM_OPERATOR_USERNAME:
+        return "관제사"
+    return user.username

@@ -3,6 +3,8 @@ Thumbs.db
 
 *.log
 *.tmp
+.coverage
+coverage.xml
 
 build/
 dist/

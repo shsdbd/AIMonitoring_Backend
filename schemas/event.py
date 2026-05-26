@@ -60,3 +60,25 @@ class EventStatusUpdate(BaseModel):
             return None
         stripped = value.strip()
         return stripped or None
+
+
+class CommentCreate(BaseModel):
+    content: str = Field(..., max_length=500)
+
+    @field_validator("content")
+    @classmethod
+    def normalize_content(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("content must not be blank")
+        return stripped
+
+
+class CommentRead(BaseModel):
+    id: str
+    eventId: str
+    content: str
+    createdAt: datetime
+    writerName: str
+
+    model_config = ConfigDict(from_attributes=True)

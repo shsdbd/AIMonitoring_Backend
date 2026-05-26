@@ -173,6 +173,53 @@ class BackendApiTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["error_code"], "EVENT_NOT_FOUND")
         self.assertEqual(response.json()["message"], "해당 이벤트를 찾을 수 없습니다.")
+
+    def test_comment_api_lists_and_creates_comments(self) -> None:
+        detected_object = DetectedObject(
+            species="raccoon",
+            confidence=0.88,
+            bbox_x=15.0,
+            bbox_y=25.0,
+            bbox_width=35.0,
+            bbox_height=45.0,
+        )
+
+        async def fake_save_upload_image(image):
+            return Path("tests/.tmp/sample.jpeg"), "/static/images/2026/05/26/sample.jpeg"
+
+        with (
+            TestClient(app) as client,
+            patch.object(events_router.detector, "detect", return_value=[detected_object]),
+            patch.object(events_router, "save_upload_image", new=AsyncMock(side_effect=fake_save_upload_image)),
+        ):
+            create_response = client.post(
+                "/api/events/detect",
+                data={
+                    "camera_id": "CCTV-003",
+                    "latitude": "37.5665",
+                    "longitude": "126.9780",
+                    "location_name": "테스트영역",
+                },
+                files={"image": ("sample.jpeg", b"fake-bytes", "image/jpeg")},
+            )
+            event_id = create_response.json()[0]["id"]
+
+            list_before = client.get(f"/api/events/{event_id}/comments")
+            create_comment = client.post(
+                f"/api/events/{event_id}/comments",
+                json={"content": "현장 확인 요청했습니다."},
+            )
+            list_after = client.get(f"/api/events/{event_id}/comments")
+
+        self.assertEqual(list_before.status_code, 200)
+        self.assertEqual(list_before.json(), [])
+        self.assertEqual(create_comment.status_code, 201)
+        self.assertEqual(create_comment.json()["eventId"], event_id)
+        self.assertEqual(create_comment.json()["content"], "현장 확인 요청했습니다.")
+        self.assertEqual(create_comment.json()["writerName"], "관제사")
+        self.assertEqual(list_after.status_code, 200)
+        self.assertEqual(len(list_after.json()), 1)
+        self.assertEqual(list_after.json()[0]["writerName"], "관제사")
 def tearDownModule() -> None:
     if TEST_DB_PATH.exists():
         TEST_DB_PATH.unlink()

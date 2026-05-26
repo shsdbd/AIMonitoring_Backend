@@ -39,6 +39,7 @@
 - **User 역할:** `User`는 도로 관제사 또는 시스템 사용자를 나타내며, 이벤트 담당자와 코멘트 작성자를 식별하는 데 사용한다.
 - **Equipment 역할:** `Equipment`는 CCTV 또는 드론 등 탐지 장비를 나타내며, 이벤트 발생 장비를 식별하는 데 사용한다.
 - **Comment 역할:** `Comment`는 관제사가 이벤트에 남기는 처리 기록, 확인 메모, 오탐 사유를 나타내며, MVP 조건부 포함 기능으로 둔다.
+- **메모 API:** 이벤트별 메모 조회/저장은 `GET /api/events/{eventId}/comments`, `POST /api/events/{eventId}/comments`로 제공한다. 시스템 계정으로 저장된 메모의 `writerName`은 `관제사`로 응답한다.
 - **최종 관계:** `User -> Event`, `Equipment -> Event`, `User -> Comment`, `Event -> Comment` 네 관계만 정의한다.
 - **Equipment 핵심 표시 속성:** 프론트 `cameraId` 응답을 위해 `camera_id`를 Equipment의 핵심 속성으로 둔다.
 - **Event 핵심 속성:** `equipment_id`, `user_id`, `obstacle_type`, `species`, `confidence`, `latitude`, `longitude`, `status`, `image_url`, `bbox_x`, `bbox_y`, `bbox_width`, `bbox_height`, `priority`, `detected_at`, `repeat_detection`, `repeat_count`, `last_detected_at`을 Event의 핵심 논리 속성으로 둔다.

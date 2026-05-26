@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 from ai.yolo_detector import YoloDetector
 from core.errors import service_unavailable, unprocessable_entity
 from dependencies.database import get_db
-from schemas.event import EventStatusUpdate, RoadkillEvent
+from schemas.event import CommentCreate, CommentRead, EventStatusUpdate, RoadkillEvent
 from storage.image_storage import save_upload_image
 from services.event_service import (
+    create_event_comment,
     create_detected_events,
     get_event,
+    list_event_comments,
     list_events,
     update_event_status,
 )
@@ -79,6 +81,18 @@ def patch_event_status(
     return update_event_status(db, event_id, payload)
 
 
+def list_comments(event_id: int, db: Session = Depends(get_db)) -> list[CommentRead]:
+    return list_event_comments(db, event_id)
+
+
+def create_comment(
+    event_id: int,
+    payload: CommentCreate,
+    db: Session = Depends(get_db),
+) -> CommentRead:
+    return create_event_comment(db, event_id, payload)
+
+
 def _required_form_value(field_name: str, value: str | None) -> str:
     if value is None or not value.strip():
         raise unprocessable_entity(
@@ -104,6 +118,12 @@ router.post(
 )(detect_events)
 router.get("/{event_id}", response_model=RoadkillEvent)(read_event)
 router.patch("/{event_id}/status", response_model=RoadkillEvent)(patch_event_status)
+router.get("/{event_id}/comments", response_model=list[CommentRead])(list_comments)
+router.post(
+    "/{event_id}/comments",
+    response_model=CommentRead,
+    status_code=status.HTTP_201_CREATED,
+)(create_comment)
 
 compat_router.get("", response_model=list[RoadkillEvent])(read_events)
 compat_router.post(
@@ -113,3 +133,9 @@ compat_router.post(
 )(detect_events)
 compat_router.get("/{event_id}", response_model=RoadkillEvent)(read_event)
 compat_router.patch("/{event_id}/status", response_model=RoadkillEvent)(patch_event_status)
+compat_router.get("/{event_id}/comments", response_model=list[CommentRead])(list_comments)
+compat_router.post(
+    "/{event_id}/comments",
+    response_model=CommentRead,
+    status_code=status.HTTP_201_CREATED,
+)(create_comment)
