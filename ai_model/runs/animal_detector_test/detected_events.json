@@ -1,0 +1,92 @@
+[
+  {
+    "objectType": "ANIMAL",
+    "species": "wild_boar",
+    "confidence": 0.85706,
+    "bbox": {
+      "x": 0.503913,
+      "y": 0.757511,
+      "width": 0.263007,
+      "height": 0.235235
+    },
+    "imageFileName": "test1.jpeg",
+    "imageWidth": 600,
+    "imageHeight": 450,
+    "detectedAt": "2026-05-26T07:33:52.624722+00:00"
+  },
+  {
+    "objectType": "ANIMAL",
+    "species": "raccoon",
+    "confidence": 0.69356,
+    "bbox": {
+      "x": 0.783435,
+      "y": 0.230842,
+      "width": 0.144835,
+      "height": 0.120138
+    },
+    "imageFileName": "test12.jpeg",
+    "imageWidth": 340,
+    "imageHeight": 453,
+    "detectedAt": "2026-05-26T07:33:52.706031+00:00"
+  },
+  {
+    "objectType": "ANIMAL",
+    "species": "raccoon",
+    "confidence": 0.454523,
+    "bbox": {
+      "x": 0.62832,
+      "y": 0.220544,
+      "width": 0.116281,
+      "height": 0.110153
+    },
+    "imageFileName": "test12.jpeg",
+    "imageWidth": 340,
+    "imageHeight": 453,
+    "detectedAt": "2026-05-26T07:33:52.706031+00:00"
+  },
+  {
+    "objectType": "ANIMAL",
+    "species": "wild_boar",
+    "confidence": 0.657141,
+    "bbox": {
+      "x": 0.595425,
+      "y": 0.793651,
+      "width": 0.401868,
+      "height": 0.170969
+    },
+    "imageFileName": "test3.jpeg",
+    "imageWidth": 340,
+    "imageHeight": 230,
+    "detectedAt": "2026-05-26T07:33:53.051627+00:00"
+  },
+  {
+    "objectType": "ANIMAL",
+    "species": "wild_boar",
+    "confidence": 0.511209,
+    "bbox": {
+      "x": 0.51464,
+      "y": 0.494316,
+      "width": 0.374957,
+      "height": 0.237151
+    },
+    "imageFileName": "test8.jpeg",
+    "imageWidth": 340,
+    "imageHeight": 453,
+    "detectedAt": "2026-05-26T07:33:53.119065+00:00"
+  },
+  {
+    "objectType": "ANIMAL",
+    "species": "gorani",
+    "confidence": 0.61836,
+    "bbox": {
+      "x": 0.481474,
+      "y": 0.452582,
+      "width": 0.202377,
+      "height": 0.093475
+    },
+    "imageFileName": "test9.jpeg",
+    "imageWidth": 340,
+    "imageHeight": 468,
+    "detectedAt": "2026-05-26T07:33:53.136582+00:00"
+  }
+]
