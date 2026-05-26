@@ -126,6 +126,7 @@
 - 최종 개발 지시서는 `docs/implementation/08_implementation_prompt_writer_05.md`이다.
 - 프론트 API 계약 패치 문서는 `docs/contracts/09_frontend_api_contract_01.md`에 저장되어 있다.
 - 백엔드 API 사용법 가이드는 `docs/backend/09_backend_implementation_06.md`에 저장되어 있다.
+- 백엔드 테스트 코드는 `tests/test_backend_api.py`에 저장되어 있고, 테스트 산출물 문서는 `docs/backend/09_backend_implementation_07.md`에 저장되어 있다.
 - AI 파트 전달 폴더는 `ai_model/`이며, 학습 코드(`main.py`), 추론 코드(`test.py`), 테스트 이미지, 학습 결과, `best.pt`/`last.pt`, 테스트 결과 JSON을 포함한다.
 - resume 이후 대화 요약 로그는 `codex-session_2.log`에 저장되어 있다.
 
@@ -164,6 +165,7 @@
 - EC2에서 Docker DB 초기화 후 `GET /api/events`가 `[]`를 반환하는 것을 사용자가 확인했다.
 - EC2에서 실제 이미지 업로드를 통한 YOLO 추론, Event 생성, 반복 감지 priority 격상, 상태 변경 API를 확인했다.
 - 검증 중 기존 업로드 이미지가 Docker 재빌드 후 404가 되는 문제가 확인되어 `docker-compose.yml`에 `static_images:/app/static/images` 볼륨을 추가했다. 기존에 사라진 이미지 파일은 복구되지 않지만, 이후 업로드 이미지는 컨테이너 재생성 후에도 유지된다.
+- `httpx==0.27.0`을 추가해 `unittest` 기반 통합 테스트를 작성했다.
 - 최근 커밋:
   - `56b132b docs: add implementation prompt artifacts`
   - `239cc23 chore: remove tracked venv and pycache`

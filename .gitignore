@@ -15,6 +15,7 @@ venv/
 
 .env
 .env.local
+tests/.tmp/
 
 *.pdf
 *.rtf
