@@ -206,6 +206,8 @@ AI 서버를 별도로 띄우지 않고, 전달받은 `ai_model` 폴더의 YOLOv
 | `locationName` | 선택 | 프론트 `location`으로 내려줄 위치명 |
 | `image` | 필수 | `png`, `jpg`, `jpeg` 이미지 |
 
+Swagger 테스트 화면에서는 `camera_id`, `location_name`으로 표시되며, 프론트 요청의 `cameraId`, `locationName`도 호환 처리한다.
+
 `cameraId`에 해당하는 장비가 없으면 백엔드가 `equipment` 데이터를 자동 생성한다.
 
 - `equipment_type`: `CCTV`

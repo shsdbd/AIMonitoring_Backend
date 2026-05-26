@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
 from ai.yolo_detector import YoloDetector
@@ -24,20 +24,20 @@ def read_events(db: Session = Depends(get_db)) -> list[RoadkillEvent]:
 
 
 async def detect_events(
+    request: Request,
     camera_id: str | None = Form(default=None),
-    camera_id_camel: str | None = Form(default=None, alias="cameraId"),
     latitude: float = Form(..., ge=-90.0, le=90.0),
     longitude: float = Form(..., ge=-180.0, le=180.0),
     location_name: str | None = Form(default=None),
-    location_name_camel: str | None = Form(default=None, alias="locationName"),
     image: UploadFile = File(...),
     db: Session = Depends(get_db),
 ) -> list[RoadkillEvent]:
+    form = await request.form()
     resolved_camera_id = _required_form_value(
         field_name="cameraId",
-        value=camera_id_camel or camera_id,
+        value=_first_form_value(form.get("cameraId"), camera_id),
     )
-    resolved_location_name = location_name_camel or location_name
+    resolved_location_name = _first_form_value(form.get("locationName"), location_name)
 
     image_path, image_url = await save_upload_image(image)
 
@@ -87,6 +87,13 @@ def _required_form_value(field_name: str, value: str | None) -> str:
             detail={"field": field_name},
         )
     return value.strip()
+
+
+def _first_form_value(*values: object) -> str | None:
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
 router.get("", response_model=list[RoadkillEvent])(read_events)

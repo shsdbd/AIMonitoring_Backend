@@ -179,14 +179,12 @@ Swagger에서 `POST /api/events/detect`를 열고 `Try it out`을 누른 뒤 아
 | 필드 | 예시 | 설명 |
 | --- | --- | --- |
 | `camera_id` | `CCTV-001` | CCTV/장비 표시 식별자 |
-| `camera_id_camel` | 비워둠 | `cameraId` 호환 필드 |
 | `latitude` | `37.5665` | 위도 |
 | `longitude` | `126.9780` | 경도 |
 | `location_name` | `테스트영역` | 프론트 `location` 표시값 |
-| `location_name_camel` | 비워둠 | `locationName` 호환 필드 |
 | `image` | 이미지 파일 선택 | `png`, `jpg`, `jpeg` |
 
-Swagger에는 snake case 필드와 camelCase 호환 필드가 함께 보일 수 있다. Swagger 테스트에서는 `camera_id`, `location_name`을 사용하면 된다.
+Swagger 테스트에서는 `camera_id`, `location_name`을 사용하면 된다. 프론트 또는 외부 클라이언트가 `cameraId`, `locationName`으로 보내는 요청도 백엔드가 호환 처리한다.
 
 ### curl 예시
 
