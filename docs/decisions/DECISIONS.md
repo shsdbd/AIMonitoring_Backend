@@ -134,3 +134,4 @@
   - AI가 탐지한 장애물 위치를 프론트엔드가 강조 박스로 그릴 수 있도록 `bbox_x`, `bbox_y`, `bbox_width`, `bbox_height`를 Event 데이터에 포함하는 방향으로 한다.
   - 이벤트 처리 우선순위를 나타내는 `priority` 필드를 Event 데이터에 포함하는 방향으로 한다.
 - **정적 이미지 관리:** 탐지된 도로 장애물 이미지 파일은 서버 내부의 `/static/images/{YYYY}/{MM}/{DD}/` 경로에 UUID 기반의 고유 파일명으로 저장하며, API는 접근 가능한 웹 URL 주소(`image_url`)를 반환한다.
+- **정적 이미지 영속성:** Docker 실행 환경에서는 `/app/static/images`를 `static_images` 볼륨으로 마운트해 컨테이너 재빌드/재생성 후에도 업로드 이미지가 유지되도록 한다.

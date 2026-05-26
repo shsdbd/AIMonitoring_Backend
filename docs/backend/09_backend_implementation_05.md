@@ -43,3 +43,9 @@
 - `routers/events.py`
 - `services/event_service.py`
 - `storage/image_storage.py`
+
+## 추가 검증 중 발견 사항
+
+EC2 검증 중 DB에는 이벤트가 남아 있지만 컨테이너 재빌드 후 `/static/images/...` 파일이 사라져 기존 `imageUrl`이 `404`를 반환하는 문제가 확인되었다.
+
+해결을 위해 `docker-compose.yml`에 `static_images:/app/static/images` 볼륨을 추가했다. 이 변경 이후 생성되는 업로드 이미지는 컨테이너 재생성 후에도 유지된다.

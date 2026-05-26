@@ -21,7 +21,10 @@ services:
       - db
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/aimonitoring  # 💡 localhost 대신 db 서비스명으로 접속
+    volumes:
+      - static_images:/app/static/images
     restart: always
 
 volumes:
   postgres_data:
+  static_images:

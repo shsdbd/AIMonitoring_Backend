@@ -161,7 +161,8 @@
   - `venv/bin/python -c "from main import app; print(sorted([route.path for route in app.routes]))"` 결과에 공식 API 경로와 `/api/events/detect`가 포함됨.
   - `venv/bin/python -c "import models; from database import Base; print(sorted(Base.metadata.tables.keys()))"` 결과: `['comments', 'equipment', 'events', 'users']`.
 - EC2에서 Docker DB 초기화 후 `GET /api/events`가 `[]`를 반환하는 것을 사용자가 확인했다.
-- 아직 실제 이미지 업로드를 통한 YOLO 추론 검증은 하지 않았다. EC2 Docker build 시 `ultralytics`/`torch` 의존성 설치와 `best.pt` 모델 파일 배포가 필요하다.
+- EC2에서 실제 이미지 업로드를 통한 YOLO 추론, Event 생성, 반복 감지 priority 격상, 상태 변경 API를 확인했다.
+- 검증 중 기존 업로드 이미지가 Docker 재빌드 후 404가 되는 문제가 확인되어 `docker-compose.yml`에 `static_images:/app/static/images` 볼륨을 추가했다. 기존에 사라진 이미지 파일은 복구되지 않지만, 이후 업로드 이미지는 컨테이너 재생성 후에도 유지된다.
 - 최근 커밋:
   - `56b132b docs: add implementation prompt artifacts`
   - `239cc23 chore: remove tracked venv and pycache`
