@@ -18,6 +18,8 @@
 
 공식 프론트 연동 API prefix는 `/api`로 둔다.
 
+백엔드는 프론트 배포 URL `https://roadkill-detection.vercel.app`과 로컬 개발 URL(`localhost`, `127.0.0.1`)을 CORS 허용 origin으로 둔다. 추가 프론트 배포 URL이 생기면 `CORS_ORIGINS` 환경변수에 콤마 구분 문자열로 추가한다.
+
 | 기능 | Method | Path |
 | --- | --- | --- |
 | 이벤트 목록 조회 | `GET` | `/api/events` |

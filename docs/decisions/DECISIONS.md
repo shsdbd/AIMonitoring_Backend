@@ -96,6 +96,7 @@
 ## 10. 프론트엔드 API 계약 결정
 - **프론트 응답 기준:** 프론트엔드는 기존 `RoadkillEvent` 타입을 유지하고, 백엔드는 API 응답 DTO에서 내부 DB 값을 프론트 타입에 맞게 가공해 내려준다.
 - **API prefix:** 공식 프론트 연동 API prefix는 `/api`로 정한다. 기존 `/api/v1` 경로는 초기 프로토타입 산물이며, 필요하면 개발 기간 동안 호환 라우트로 유지할 수 있다.
+- **CORS 허용 origin:** 백엔드는 `https://roadkill-detection.vercel.app`과 로컬 개발 URL(`localhost`, `127.0.0.1`)을 기본 CORS 허용 origin으로 둔다. 추가 origin은 `CORS_ORIGINS` 환경변수로 관리한다.
 - **이벤트 목록 API:** 이벤트 목록 조회 공식 경로는 `GET /api/events`로 정한다.
 - **이벤트 상세 API:** 이벤트 상세 조회 공식 경로는 `GET /api/events/{eventId}`로 정한다.
 - **상태 변경 API:** 이벤트 상태 변경 공식 경로는 `PATCH /api/events/{eventId}/status`로 정한다.

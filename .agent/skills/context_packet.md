@@ -66,6 +66,7 @@
 - 프론트엔드 팀은 1차 목업 배포 및 GitHub 저장소를 공유했다.
   - 배포: `https://roadkill-detection.vercel.app/`
   - 저장소: `https://github.com/haruby2357/Roadkill-Detection`
+- CORS는 프론트 배포 URL `https://roadkill-detection.vercel.app`과 로컬 개발 URL을 기본 허용한다. 추가 origin은 `CORS_ORIGINS` 환경변수로 관리한다.
 - 프론트엔드가 요구한 1차 최소 API는 `GET /api/events`, `GET /api/events/{eventId}`, `PATCH /api/events/{eventId}/status`이며, 공식 프론트 연동 경로는 `/api` prefix로 정한다.
 - 현재 프로토타입 API 경로는 `/api/v1/events` 계열이므로, 실제 연동 시 공식 경로는 `/api/events`로 맞춘다. `/api/v1/events` 호환 유지 여부는 남은 결정 사항이다.
 - 프론트엔드 `RoadkillEvent` 타입은 `id`, `riskLevel`, `detectedAt`, `location`, `objectType`, `status`, `description`, `cameraId`, `repeatDetection`, `lastDetectedAt`, `imageUrl`, `boundingBox`를 요구한다.
