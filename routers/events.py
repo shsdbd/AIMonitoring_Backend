@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from sqlalchemy.orm import Session
 
 from ai.yolo_detector import YoloDetector
+from core.errors import service_unavailable, unprocessable_entity
 from dependencies.database import get_db
 from schemas.event import EventStatusUpdate, RoadkillEvent
 from storage.image_storage import save_upload_image
@@ -43,13 +44,15 @@ async def detect_events(
     try:
         detected_objects = detector.detect(image_path)
     except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        raise service_unavailable(
+            error_code="YOLO_MODEL_NOT_FOUND",
+            message="YOLO 모델 파일을 찾을 수 없습니다.",
             detail=str(exc),
         ) from exc
     except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        raise service_unavailable(
+            error_code="YOLO_INFERENCE_UNAVAILABLE",
+            message="YOLO 추론 환경을 사용할 수 없습니다.",
             detail=str(exc),
         ) from exc
 
@@ -78,9 +81,10 @@ def patch_event_status(
 
 def _required_form_value(field_name: str, value: str | None) -> str:
     if value is None or not value.strip():
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"{field_name} is required.",
+        raise unprocessable_entity(
+            error_code="REQUIRED_FORM_FIELD_MISSING",
+            message=f"{field_name} 값은 필수입니다.",
+            detail={"field": field_name},
         )
     return value.strip()
 

@@ -2,9 +2,11 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from core.exception_handlers import validation_exception_handler
 from database import init_db
 from routers.events import compat_router as events_compat_router
 from routers.events import router as events_router
@@ -56,6 +58,8 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(events_router)
 app.include_router(events_compat_router)
+
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 
 @app.on_event("startup")

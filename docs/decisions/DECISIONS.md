@@ -120,6 +120,7 @@
 - **반복 감지 이벤트 갱신:** 최초 감지는 `repeat_count=0`, `repeat_detection=false`, `priority=3`으로 생성한다. 1회 반복 감지 시 기존 이벤트를 `repeat_count=1`, `repeat_detection=true`, `priority=2`, `last_detected_at=현재 시각`으로 갱신한다. 2회 이상 반복 감지 시 기존 이벤트를 `repeat_count>=2`, `repeat_detection=true`, `priority=1`, `last_detected_at=현재 시각`으로 갱신한다.
 - **priority 산출 기준:** priority는 백엔드가 반복 감지 횟수 기준으로 산출한다. `repeat_count=0 -> priority=3`, `repeat_count=1 -> priority=2`, `repeat_count>=2 -> priority=1`로 정한다.
 - **RoadkillEvent 필수 응답 필드:** 최종 이벤트 목록/상세 응답 DTO에는 `cameraId`, `repeatDetection`, `lastDetectedAt`을 반드시 포함한다.
+- **공통 에러 응답:** 주요 백엔드 오류는 `{ error_code, message, detail }` 구조로 반환한다. 요청 검증 오류는 `VALIDATION_ERROR`, 이벤트 없음은 `EVENT_NOT_FOUND`, YOLO 환경 문제는 `YOLO_MODEL_NOT_FOUND` 또는 `YOLO_INFERENCE_UNAVAILABLE`로 구분한다.
 - **프론트 계약 문서:** 프론트 API 계약 패치 문서는 `docs/contracts/09_frontend_api_contract_01.md`를 기준으로 한다.
 
 ## 11. 데이터베이스 아키텍처 및 데이터 모델 정책

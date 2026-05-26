@@ -213,3 +213,27 @@ AI 서버를 별도로 띄우지 않고, 전달받은 `ai_model` 폴더의 YOLOv
 - `status`: `ACTIVE`
 
 응답은 `RoadkillEvent[]`다. 한 이미지에서 여러 객체가 탐지되면 여러 이벤트가 생성될 수 있다. 탐지 객체가 없으면 빈 배열을 반환한다.
+
+## 16. 공통 에러 응답
+
+백엔드 주요 오류는 다음 형식을 사용한다.
+
+```json
+{
+  "error_code": "ERROR_CODE",
+  "message": "오류 메시지",
+  "detail": {}
+}
+```
+
+대표 에러 코드는 다음과 같다.
+
+| HTTP Status | error_code | 의미 |
+| --- | --- | --- |
+| `400` | `UNSUPPORTED_IMAGE_CONTENT_TYPE` | 허용되지 않은 이미지 content type |
+| `400` | `UNSUPPORTED_IMAGE_EXTENSION` | 허용되지 않은 이미지 확장자 |
+| `404` | `EVENT_NOT_FOUND` | 요청한 이벤트가 없음 |
+| `422` | `REQUIRED_FORM_FIELD_MISSING` | 필수 form 필드 누락 |
+| `422` | `VALIDATION_ERROR` | 요청 검증 실패 |
+| `503` | `YOLO_MODEL_NOT_FOUND` | YOLO 모델 파일 누락 |
+| `503` | `YOLO_INFERENCE_UNAVAILABLE` | YOLO 추론 의존성/환경 문제 |

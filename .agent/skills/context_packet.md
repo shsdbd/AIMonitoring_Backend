@@ -152,6 +152,10 @@
   - 없는 `cameraId`는 `Equipment`로 자동 생성한다.
   - 같은 장비, 같은 종, bbox 중심점 완전 동일, 1분 이상 간격이면 기존 이벤트의 `repeat_count`, `repeat_detection`, `priority`, `last_detected_at`을 갱신한다.
   - `requirements.txt`에 `ultralytics==8.3.38`을 추가했다.
+- 에러 응답 정리를 구현했다.
+  - `core/errors.py`, `core/exception_handlers.py`를 추가했다.
+  - 주요 오류 응답은 `{ error_code, message, detail }` 구조를 사용한다.
+  - FastAPI/Pydantic validation 오류도 `VALIDATION_ERROR` 코드로 감싼다.
 - 검증 결과:
   - `venv/bin/python -m compileall database.py models schemas dependencies services routers main.py` 성공.
   - `venv/bin/python -c "from main import app; print(sorted([route.path for route in app.routes]))"` 결과에 공식 API 경로와 `/api/events/detect`가 포함됨.

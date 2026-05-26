@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from ai.yolo_detector import DetectedObject
+from core.errors import not_found
 from models.comment import Comment
 from models.equipment import Equipment
 from models.event import Event
@@ -149,9 +149,10 @@ def _get_event_with_equipment(db: Session, event_id: int) -> tuple[Event, Equipm
         .first()
     )
     if row is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="해당 이벤트를 찾을 수 없습니다.",
+        raise not_found(
+            error_code="EVENT_NOT_FOUND",
+            message="해당 이벤트를 찾을 수 없습니다.",
+            detail={"event_id": event_id},
         )
     return row
 
