@@ -14,15 +14,14 @@ from services.event_service import (
 
 
 router = APIRouter(prefix="/api/events", tags=["events"])
+compat_router = APIRouter(prefix="/api/v1/events", tags=["events-compat"])
 detector = YoloDetector()
 
 
-@router.get("", response_model=list[RoadkillEvent])
 def read_events(db: Session = Depends(get_db)) -> list[RoadkillEvent]:
     return list_events(db)
 
 
-@router.post("/detect", response_model=list[RoadkillEvent], status_code=status.HTTP_201_CREATED)
 async def detect_events(
     camera_id: str | None = Form(default=None),
     camera_id_camel: str | None = Form(default=None, alias="cameraId"),
@@ -65,12 +64,10 @@ async def detect_events(
     )
 
 
-@router.get("/{event_id}", response_model=RoadkillEvent)
 def read_event(event_id: int, db: Session = Depends(get_db)) -> RoadkillEvent:
     return get_event(db, event_id)
 
 
-@router.patch("/{event_id}/status", response_model=RoadkillEvent)
 def patch_event_status(
     event_id: int,
     payload: EventStatusUpdate,
@@ -86,3 +83,22 @@ def _required_form_value(field_name: str, value: str | None) -> str:
             detail=f"{field_name} is required.",
         )
     return value.strip()
+
+
+router.get("", response_model=list[RoadkillEvent])(read_events)
+router.post(
+    "/detect",
+    response_model=list[RoadkillEvent],
+    status_code=status.HTTP_201_CREATED,
+)(detect_events)
+router.get("/{event_id}", response_model=RoadkillEvent)(read_event)
+router.patch("/{event_id}/status", response_model=RoadkillEvent)(patch_event_status)
+
+compat_router.get("", response_model=list[RoadkillEvent])(read_events)
+compat_router.post(
+    "/detect",
+    response_model=list[RoadkillEvent],
+    status_code=status.HTTP_201_CREATED,
+)(detect_events)
+compat_router.get("/{event_id}", response_model=RoadkillEvent)(read_event)
+compat_router.patch("/{event_id}/status", response_model=RoadkillEvent)(patch_event_status)
