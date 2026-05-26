@@ -88,12 +88,23 @@ class BackendApiTests(unittest.TestCase):
             self.assertEqual(first.json()[0]["objectType"], "멧돼지")
             self.assertEqual(first.json()[0]["riskLevel"], "후순위 확인")
 
+            second = client.post(
+                "/api/events/detect",
+                data={
+                    "camera_id": "CCTV-001",
+                    "latitude": "37.5665",
+                    "longitude": "126.9780",
+                    "location_name": "테스트영역",
+                },
+                files={"image": ("sample.jpeg", b"fake-bytes", "image/jpeg")},
+            )
+
             with SessionLocal() as session:
                 event = session.query(Event).one()
                 event.last_detected_at = datetime.now(timezone.utc) - timedelta(minutes=2)
                 session.commit()
 
-            second = client.post(
+            third = client.post(
                 "/api/events/detect",
                 data={
                     "camera_id": "CCTV-001",
@@ -106,8 +117,13 @@ class BackendApiTests(unittest.TestCase):
 
         self.assertEqual(second.status_code, 201)
         self.assertEqual(len(second.json()), 1)
-        self.assertTrue(second.json()[0]["repeatDetection"])
-        self.assertEqual(second.json()[0]["riskLevel"], "순차 확인")
+        self.assertFalse(second.json()[0]["repeatDetection"])
+        self.assertEqual(second.json()[0]["riskLevel"], "후순위 확인")
+
+        self.assertEqual(third.status_code, 201)
+        self.assertEqual(len(third.json()), 1)
+        self.assertTrue(third.json()[0]["repeatDetection"])
+        self.assertEqual(third.json()[0]["riskLevel"], "순차 확인")
 
         with SessionLocal() as session:
             events = session.query(Event).all()

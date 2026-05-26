@@ -216,6 +216,8 @@ curl -X POST http://3.27.181.100:8000/api/events/detect \
 - bbox 중심점 완전 동일
 - 마지막 감지 이후 1분 이상 경과
 
+같은 `camera_id`, `species`, bbox 중심점의 이벤트가 1분 이내에 다시 들어오면 새 이벤트를 만들지 않고 기존 이벤트를 그대로 반환한다. 이 경우 `priority`는 격상하지 않는다.
+
 테스트 방법:
 
 1. `POST /api/events/detect`로 이미지 업로드

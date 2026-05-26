@@ -156,6 +156,8 @@ API 응답의 `RoadkillEvent.status`는 프론트 타입에 맞춰 반드시 한
 
 이를 위해 `events.repeat_detection`, `events.repeat_count`, `events.last_detected_at` 필드를 추가하는 방향으로 한다.
 
+같은 `cameraId`, 같은 `species`, 같은 bbox 중심점의 객체가 1분 이내에 다시 감지되면 중복 이벤트를 새로 만들지 않고 기존 이벤트를 반환한다. 이 경우 priority 격상은 수행하지 않는다.
+
 priority 격상 규칙은 다음과 같다.
 
 | 조건 | repeat_count | priority | riskLevel |

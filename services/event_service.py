@@ -56,11 +56,10 @@ def create_detected_events(
     now = datetime.now(timezone.utc)
 
     for detected_object in detected_objects:
-        event = _find_repeat_event(
+        event = _find_matching_event(
             db=db,
             equipment_id=equipment.id,
             detected_object=detected_object,
-            now=now,
         )
 
         if event is None:
@@ -86,7 +85,7 @@ def create_detected_events(
             )
             db.add(event)
             db.flush()
-        else:
+        elif _is_repeat_due(event, now):
             event.repeat_count += 1
             event.repeat_detection = True
             event.priority = _priority_from_repeat_count(event.repeat_count)
@@ -263,11 +262,10 @@ def _get_or_create_equipment(
     return equipment
 
 
-def _find_repeat_event(
+def _find_matching_event(
     db: Session,
     equipment_id: int,
     detected_object: DetectedObject,
-    now: datetime,
 ) -> Event | None:
     candidates = (
         db.query(Event)
@@ -294,11 +292,14 @@ def _find_repeat_event(
         if event_center != detected_center:
             continue
 
-        last_detected_at = _as_aware_utc(event.last_detected_at)
-        if now - last_detected_at >= timedelta(minutes=1):
-            return event
+        return event
 
     return None
+
+
+def _is_repeat_due(event: Event, now: datetime) -> bool:
+    last_detected_at = _as_aware_utc(event.last_detected_at)
+    return now - last_detected_at >= timedelta(minutes=1)
 
 
 def _bbox_center(x: float, y: float, width: float, height: float) -> tuple[float, float]:
