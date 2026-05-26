@@ -81,7 +81,15 @@
 - **제외 티켓:** AI 모델 학습/추론, 프론트 디자인, 통계/분석 대시보드, 대규모 분산 처리/고가용성, 다중 객체 Detection, EventStatusHistory, Equipment 자체 좌표, 복잡한 권한 관리, 관리자용 사용자/장비 관리 고도화는 티켓으로 만들지 않는다.
 - **최종 작업 백로그:** 작업 분해 최종 산출물은 `docs/tasks/07_task_breakdown_06.md`를 기준으로 한다.
 
-## 9. 데이터베이스 아키텍처 및 데이터 모델 정책
+## 9. 구현 지시서 작성 단계 결정
+- **첫 구현 지시서 대상:** `T-02`~`T-07`을 묶어 “DB/Model 정합성 1차 구현” 지시서로 작성한다.
+- **묶음 처리 이유:** `Event`가 `User`, `Equipment`를 참조하고 `Comment`가 `User`, `Event`를 참조하므로 모델 계층은 FK 관계상 함께 정리하는 것이 안전하다.
+- **구현 지시 범위:** `models/user.py`, `models/equipment.py`, `models/comment.py` 생성, `models/event.py`, `models/__init__.py`, `database.py` 수정만 포함한다.
+- **구현 제외 범위:** `main.py`, `schemas/`, `routers/`, `services/`, `storage/`, `docker-compose.yml` 수정은 첫 구현 지시서에서 제외한다.
+- **검증 기준:** `python -m compileall database.py models` 성공 및 SQLAlchemy metadata에 `users`, `equipment`, `events`, `comments` 테이블 포함을 완료 기준으로 둔다.
+- **최종 개발 지시서:** 첫 구현 프롬프트 최종 산출물은 `docs/implementation/08_implementation_prompt_writer_05.md`를 기준으로 한다.
+
+## 10. 데이터베이스 아키텍처 및 데이터 모델 정책
 - **테이블 관계 표준:** 모든 테이블 관계는 부모 엔티티의 식별자가 자식 엔티티의 기본키(PK)에 포함되지 않는 **비식별 관계(Non-Identifying Relationship, 분홍색 점선)**를 따르며, 모든 테이블은 독립적인 대리키(`id`, SERIAL/INTEGER PK)를 가진다.
 - **카디널리티 표준:** 부모 데이터가 생성될 때 자식 데이터가 존재하지 않는 상태를 인정하기 위해 모든 관계선의 카디널리티는 **`Zero or Many` (0개 이상 허용)**로 통일한다.
 - **기준 ERD 문서:** `erd0519.jpg`를 판독해 `docs/erd/erd0519_extracted.md`로 추출했으며, 이후 도메인/DB 설계 단계의 참고 자료로 사용한다.

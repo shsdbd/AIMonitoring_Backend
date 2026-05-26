@@ -3,8 +3,8 @@
 > **주의:** 에이전트(LLM)는 작업을 시작하기 전 이 문서를 최우선으로 읽고 현재 프로젝트의 맥락과 제약 사항을 완벽히 숙지해야 합니다.
 
 ## 1. 현재 단계 (Current Stage)
-- **진행 대기 중인 스킬:** `task-breakdown` (작업 분해)
-- **현재 목표:** `task-breakdown` Step 1~6 산출물 저장 완료. 다음 사용자 지시 전까지 대기한다.
+- **진행 대기 중인 스킬:** `implementation-prompt-writer` (구현 지시서 작성)
+- **현재 목표:** `implementation-prompt-writer` Step 1~5 산출물 저장 완료. 첫 구현 지시서는 DB/Model 정합성 1차 구현을 대상으로 한다.
 
 ## 2. 프로젝트 개요 및 초기 아이디어
 - **프로젝트 명:** AI 기반 실시간 도로 장애물 관제 시스템
@@ -54,6 +54,10 @@
 - 첫 구현 티켓은 기존 개발 DB와 새 설계 충돌을 피하기 위한 개발 DB 초기화 또는 마이그레이션 전략 확정이다.
 - 조건부 티켓은 Comment 작성/조회 API, 단순 AI 요청 검증 dependency, 단순 관제사 접근 통제다.
 - AI 모델 학습/추론, 프론트 디자인, 통계/분석, 대규모 인프라, 다중 객체 Detection, EventStatusHistory, Equipment 자체 좌표, 복잡한 권한 관리, 관리자용 사용자/장비 관리 고도화는 작업 티켓으로 만들지 않는다.
+- 첫 구현 지시서 대상은 `T-02`~`T-07` 묶음인 DB/Model 정합성 1차 구현이다.
+- 첫 구현 지시서의 변경 범위는 `models/user.py`, `models/equipment.py`, `models/comment.py` 생성과 `models/event.py`, `models/__init__.py`, `database.py` 수정이다.
+- 첫 구현 지시서에서는 `main.py`, `schemas/`, `routers/`, `services/`, `storage/`, `docker-compose.yml`을 수정하지 않는다.
+- 첫 구현 지시서의 완료 기준은 `python -m compileall database.py models` 성공 및 SQLAlchemy metadata에 `users`, `equipment`, `events`, `comments` 테이블 포함이다.
 
 ## 4. 범위 및 제외 범위 (Scope)
 - **포함:** (진행하면서 확정할 예정)
@@ -84,6 +88,8 @@
 - 최종 데이터베이스 설계서는 `docs/database/06_database_design_06.md`이다.
 - `task-breakdown` Step 1~6 산출물은 `docs/tasks/07_task_breakdown_01.md`부터 `docs/tasks/07_task_breakdown_06.md`까지 저장되어 있다.
 - 최종 작업 백로그는 `docs/tasks/07_task_breakdown_06.md`이다.
+- `implementation-prompt-writer` Step 1~5 산출물은 `docs/implementation/08_implementation_prompt_writer_01.md`부터 `docs/implementation/08_implementation_prompt_writer_05.md`까지 저장되어 있다.
+- 최종 개발 지시서는 `docs/implementation/08_implementation_prompt_writer_05.md`이다.
 
 ## 7. 현재 코드 상태 메모
 - 현재 구현은 `Event` 단일 리소스 중심 프로토타입이다.
