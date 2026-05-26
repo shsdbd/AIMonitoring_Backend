@@ -41,6 +41,7 @@
 | 속성 | 필수 여부 | 설명 |
 | --- | --- | --- |
 | id | 필수 | Equipment의 고유 식별자 |
+| camera_id | 필수 | 프론트엔드에 노출할 CCTV/장비 식별자 |
 | equipment_type | 필수 | 장비 종류 |
 | location_name | 필수 | 장비 설치 또는 운용 거점 이름 |
 | status | 필수 | 장비 상태 |
@@ -52,7 +53,8 @@
 | id | 필수 | Event의 고유 식별자 |
 | equipment_id | 필수 | 이벤트를 탐지한 Equipment 참조 |
 | user_id | 선택 | 이벤트를 확인하거나 담당한 User 참조 |
-| obstacle_type | 필수 | 장애물 종류 |
+| obstacle_type | 필수 | 장애물 상위 종류. YOLO 동물 탐지 결과는 `ANIMAL`로 저장 |
+| species | 필수 | AI가 탐지한 세부 종. `gorani`, `wild_boar`, `raccoon` 중 하나 |
 | confidence | 필수 | AI 탐지 신뢰도 |
 | latitude | 필수 | 장애물 발생 위치의 위도 |
 | longitude | 필수 | 장애물 발생 위치의 경도 |
@@ -64,6 +66,9 @@
 | bbox_height | 필수 | 장애물 강조 박스 높이 |
 | priority | 필수 | 이벤트 처리 우선순위 |
 | detected_at | 필수 | 탐지 또는 등록 시각 |
+| repeat_detection | 필수 | 백엔드가 판단한 반복 감지 여부 |
+| repeat_count | 필수 | 같은 장비/종/위치에서 반복 감지된 횟수 |
+| last_detected_at | 필수 | 백엔드가 판단한 마지막 감지 시각 |
 
 ### Comment
 
@@ -93,8 +98,9 @@
 | Event confidence | AI 신뢰도는 0.0 이상 1.0 이하 의미 범위를 가진다. |
 | Event latitude/longitude | 지도 표시 가능한 유효 좌표 범위 안에 있어야 한다. |
 | Event status | 허용된 이벤트 상태 안에서만 관리한다. |
-| Event bbox | 프론트엔드가 강조 박스를 그릴 수 있는 유효한 좌표 정보여야 한다. |
-| Event priority | 허용된 우선순위 체계 안에서 관리한다. |
+| Event bbox | 0~100 퍼센트 좌표, 좌상단 기준의 유효한 박스 정보여야 한다. |
+| Event priority | `repeat_count=0`이면 3, `repeat_count=1`이면 2, `repeat_count>=2`이면 1로 관리한다. |
+| Event repeat_detection | 반복 감지 판정은 백엔드가 같은 `camera_id`, 같은 `species`, 1분 이상 간격, bbox 중심점 완전 동일 기준으로 수행한다. |
 | Comment | 반드시 Event와 User에 연결되어야 하며 내용이 비어 있으면 안 된다. |
 
 ## 7. 최종 PlantUML
@@ -115,6 +121,7 @@ entity "User" as User {
 entity "Equipment" as Equipment {
   * id : Identifier
   --
+  camera_id : Text
   equipment_type : EquipmentType
   location_name : Text
   status : EquipmentStatus
@@ -126,6 +133,7 @@ entity "Event" as Event {
   equipment_id : Reference
   user_id : Optional Reference
   obstacle_type : ObstacleType
+  species : Species
   confidence : Decimal Number
   latitude : Decimal Number
   longitude : Decimal Number
@@ -137,6 +145,9 @@ entity "Event" as Event {
   bbox_height : Decimal Number
   priority : Priority
   detected_at : DateTime
+  repeat_detection : Boolean
+  repeat_count : Integer
+  last_detected_at : DateTime
 }
 
 entity "Comment" as Comment {
@@ -161,10 +172,10 @@ Event ||..o{ Comment : "has"
 
 | 항목 | 후속 결정 필요 |
 | --- | --- |
-| bbox 좌표 기준 | 픽셀 기준 또는 정규화 기준 결정 필요 |
-| bbox 기준점 | 좌상단 또는 중심점 기준 결정 필요 |
-| priority 값 체계 | 숫자형 등급 또는 문자열 등급 결정 필요 |
+| API 응답 DTO | 내부 DB 값을 프론트 `RoadkillEvent` 타입으로 변환 필요 |
+| status 표시값 | 내부 영문 enum과 프론트 한글 표시값 매핑 필요 |
 | image_url 의미 | 이미지 파일 경로 또는 영상 참조 방식 결정 필요 |
+| repeat_detection/repeat_count/last_detected_at | 백엔드 반복 감지 정책 구현 필요 |
 | 정보 부족 이벤트 처리 | 등록 거부 또는 별도 상태 저장 결정 필요 |
 
 ## 9. 최종 결론

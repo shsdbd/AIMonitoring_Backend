@@ -1,37 +1,62 @@
 from datetime import datetime
-from typing import Optional
-from fastapi import Form
-from pydantic import BaseModel, Field
+from typing import Literal
 
-class EventCreate(BaseModel):
-    equipment_id: int = Field(..., ge=1)
-    obstacle_type: str = Field(..., min_length=1, max_length=50)
-    confidence: float = Field(..., ge=0.0, le=1.0)
-    latitude: float = Field(..., ge=-90.0, le=90.0)      # 위도 검증 추가
-    longitude: float = Field(..., ge=-180.0, le=180.0)   # 경도 검증 추가
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+
+InternalEventStatus = Literal[
+    "UNCHECKED",
+    "CHECKING",
+    "DISPATCH_REQUESTED",
+    "DISPATCHING",
+    "COMPLETED",
+    "MISIDENTIFIED",
+]
+
+DisplayEventStatus = Literal[
+    "미확인",
+    "확인 중",
+    "출동 요청",
+    "출동 중",
+    "처리 완료",
+    "오탐 처리",
+]
+
+RiskLevel = Literal["즉시 확인", "순차 확인", "후순위 확인"]
+
+
+class BoundingBox(BaseModel):
+    x: float = Field(..., ge=0.0, le=100.0)
+    y: float = Field(..., ge=0.0, le=100.0)
+    width: float = Field(..., gt=0.0, le=100.0)
+    height: float = Field(..., gt=0.0, le=100.0)
+
+
+class RoadkillEvent(BaseModel):
+    id: str
+    riskLevel: RiskLevel
+    detectedAt: datetime
+    location: str
+    objectType: str
+    status: DisplayEventStatus
+    description: str
+    cameraId: str
+    repeatDetection: bool
+    lastDetectedAt: datetime
+    imageUrl: str
+    boundingBox: BoundingBox
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EventStatusUpdate(BaseModel):
+    status: InternalEventStatus
+    comment: str | None = Field(default=None, max_length=500)
+
+    @field_validator("comment")
     @classmethod
-    def as_form(
-        cls,
-        equipment_id: int = Form(...),
-        obstacle_type: str = Form(...),
-        confidence: float = Form(...),
-        latitude: float = Form(...),
-        longitude: float = Form(...),
-    ) -> "EventCreate":
-        return cls(
-            equipment_id=equipment_id,
-            obstacle_type=obstacle_type,
-            confidence=confidence,
-            latitude=latitude,
-            longitude=longitude,
-        )
-
-class EventRead(EventCreate):
-    id: int
-    user_id: Optional[int] = None
-    image_url: str
-    status: str
-    detected_at: datetime
-
-    model_config = {"from_attributes": True}
+    def normalize_comment(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        return stripped or None

@@ -33,6 +33,8 @@ schemas/
 - `equipment_id`가 문자열로 되어 있다.
 - bbox 필드가 없다.
 - priority 필드가 없다.
+- 프론트 계약과 반복 감지 정책에 필요한 `repeat_detection`, `repeat_count`, `last_detected_at` 필드가 없다.
+- 프론트 `cameraId` 응답에 사용할 `equipment.camera_id` 필드가 없다.
 - `User`, `Equipment`, `Comment` 모델이 없다.
 - `database.init_db()`는 `models.event`만 import한다.
 
@@ -44,6 +46,7 @@ schemas/
 - `docs/domain/04_domain_modeling_06.md`
 - `docs/architecture/05_architecture_planning_06.md`
 - `docs/tasks/07_task_breakdown_06.md`
+- `docs/contracts/09_frontend_api_contract_01.md`
 - `.agent/skills/context_packet.md`
 
 ## 4. 변경 범위
@@ -109,6 +112,7 @@ schemas/
 컬럼:
 
 - `id`: integer primary key autoincrement
+- `camera_id`: string length 50, not null, unique
 - `equipment_type`: string length 20, not null
 - `location_name`: string length 100, not null
 - `status`: string length 20, not null, default `ACTIVE`
@@ -126,6 +130,7 @@ schemas/
 주의:
 
 - 장비 종류 컬럼명은 `type`이 아니라 반드시 `equipment_type`으로 사용한다.
+- 프론트 `RoadkillEvent.cameraId` 응답에는 `camera_id` 값을 사용할 수 있어야 한다.
 
 ### 5.4 Event 모델
 
@@ -139,6 +144,7 @@ schemas/
 - `equipment_id`: integer, foreign key to `equipment.id`, not null
 - `user_id`: integer, foreign key to `users.id`, nullable
 - `obstacle_type`: string length 50, not null
+- `species`: string length 50, not null
 - `confidence`: float, not null
 - `latitude`: float, not null
 - `longitude`: float, not null
@@ -150,18 +156,23 @@ schemas/
 - `bbox_height`: float, not null
 - `priority`: integer, not null
 - `detected_at`: timezone-aware datetime, not null, server default current timestamp
+- `repeat_detection`: boolean, not null, default `False`
+- `repeat_count`: integer, not null, default `0`
+- `last_detected_at`: timezone-aware datetime, not null, server default current timestamp
 
 제약:
 
 - `confidence >= 0.0 AND confidence <= 1.0`
 - `latitude >= -90.0 AND latitude <= 90.0`
 - `longitude >= -180.0 AND longitude <= 180.0`
-- `status IN ('UNCHECKED', 'CHECKING', 'COMPLETED', 'MISIDENTIFIED')`
-- `bbox_x >= 0.0`
-- `bbox_y >= 0.0`
-- `bbox_width > 0.0`
-- `bbox_height > 0.0`
-- `priority >= 1`
+- `status IN ('UNCHECKED', 'CHECKING', 'DISPATCH_REQUESTED', 'DISPATCHING', 'COMPLETED', 'MISIDENTIFIED')`
+- `species IN ('gorani', 'wild_boar', 'raccoon')`
+- `bbox_x >= 0.0 AND bbox_x <= 100.0`
+- `bbox_y >= 0.0 AND bbox_y <= 100.0`
+- `bbox_width > 0.0 AND bbox_width <= 100.0`
+- `bbox_height > 0.0 AND bbox_height <= 100.0`
+- `priority IN (1, 2, 3)`
+- `repeat_count >= 0`
 
 FK 삭제 정책:
 
@@ -183,6 +194,12 @@ FK 삭제 정책:
 - `equipment_id`는 문자열이 아니라 정수 FK로 취급한다.
 - `user_id`는 반드시 nullable이어야 한다.
 - latitude/longitude는 반드시 float로 둔다.
+- `obstacle_type`은 상위 유형 `ANIMAL`을 저장하고, AI가 탐지한 세부 종은 `species`에 저장한다.
+- bbox는 프론트 계약에 따라 0~100 퍼센트 좌표, 좌상단 기준 값으로 저장한다.
+- 반복 감지 판정은 백엔드가 같은 `camera_id`, 같은 `species`, 1분 이상 간격, bbox 중심점 완전 동일 조건으로 수행할 예정이므로 이를 저장할 수 있게 `repeat_detection`, `repeat_count`, `last_detected_at` 컬럼을 준비한다.
+- priority 격상 규칙은 `repeat_count=0 -> priority=3`, `repeat_count=1 -> priority=2`, `repeat_count>=2 -> priority=1`이다.
+- 후속 API 응답 DTO에서는 `repeat_detection`을 `repeatDetection`, `last_detected_at`을 `lastDetectedAt`으로 변환해 반드시 포함해야 한다.
+- 후속 API 응답 DTO의 `status`는 내부 영문 enum이 아니라 프론트 `RoadkillEvent.status` 타입에 맞춘 한글 상태값으로 내려줘야 한다.
 
 ### 5.5 Comment 모델
 

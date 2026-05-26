@@ -19,6 +19,6 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    import models.event  # noqa: F401
+    import models  # noqa: F401
 
     Base.metadata.create_all(bind=ENGINE)

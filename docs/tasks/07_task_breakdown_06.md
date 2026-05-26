@@ -36,12 +36,12 @@
 - [ ] **T-04. Equipment 모델 작성**
   - 목표: `equipment` 테이블 모델을 작성한다.
   - 참조: `docs/database/06_database_design_06.md`
-  - DoD: `equipment_type`, `location_name`, `status`와 제약이 반영된다.
+  - DoD: `camera_id`, `equipment_type`, `location_name`, `status`와 제약이 반영된다.
 
 - [ ] **T-05. Event 모델 재작성**
   - 목표: 기존 Event 모델을 최종 설계에 맞게 수정한다.
   - 참조: `docs/database/06_database_design_06.md`
-  - DoD: `user_id`, bbox, priority, 정수 FK `equipment_id`가 반영되고 직접 `equipment_type` 컬럼은 제거된다.
+  - DoD: `user_id`, `species`, bbox, priority, 반복 감지 필드, 정수 FK `equipment_id`가 반영되고 직접 `equipment_type` 컬럼은 제거된다.
 
 - [ ] **T-06. Comment 모델 작성**
   - 목표: `comments` 테이블 모델을 작성한다.
@@ -56,7 +56,7 @@
 - [ ] **T-08. Event 스키마 재정리**
   - 목표: Event 생성/조회/상태 변경 스키마를 최종 필드 기준으로 정리한다.
   - 참조: `docs/requirements/02_requirements_decomposition_11.md`
-  - DoD: bbox, priority, nullable user_id, 상태값 검증이 반영된다.
+  - DoD: `species`, bbox, priority, nullable user_id, 반복 감지 필드, 6개 상태값 검증이 반영된다.
 
 - [ ] **T-09. User/Equipment/Comment 스키마 작성**
   - 목표: 보조 도메인 기본 스키마를 작성한다.
@@ -81,12 +81,22 @@
 - [ ] **T-13. Event service 작성**
   - 목표: 이벤트 생성, 목록 조회, 상세 조회, 상태 변경 비즈니스 로직을 service로 분리한다.
   - 참조: `docs/architecture/05_architecture_planning_06.md`
-  - DoD: 라우터에 DB 쿼리/비즈니스 로직이 직접 남지 않는다.
+  - DoD: 라우터에 DB 쿼리/비즈니스 로직이 직접 남지 않고, 내부 Event 데이터를 프론트 `RoadkillEvent` 응답 형태로 변환할 수 있다. 응답에는 한글 `status`, `cameraId`, `repeatDetection`, `lastDetectedAt`이 포함된다.
+
+- [ ] **T-13A. YOLO 추론 모듈 통합**
+  - 목표: `ai_model`의 `best.pt`와 추론 로직을 백엔드 내부 AI 모듈로 분리 통합한다.
+  - 참조: `ai_model/test.py`, `docs/contracts/09_frontend_api_contract_01.md`
+  - DoD: 이미지 입력에 대해 `species`, `confidence`, 중심점 기준 bbox를 얻고, 이를 좌상단 기준 0~100 퍼센트 bbox로 변환할 수 있다. confidence threshold는 `0.3`, 모델은 `best.pt`를 사용한다.
+
+- [ ] **T-13B. 반복 감지 및 priority 계산 서비스 작성**
+  - 목표: 같은 `camera_id`에서 1분 이후 bbox 중심점이 완전히 동일한 객체가 다시 감지되는지 판단하고 Event에 반영한다.
+  - 참조: `docs/decisions/DECISIONS.md`
+  - DoD: 같은 `camera_id`, 같은 `species`, 1분 이상 간격, bbox 중심점 완전 동일 조건에서 기존 이벤트를 갱신한다. 최초 감지는 `repeat_count=0`, `priority=3`; 1회 반복 감지는 `repeat_count=1`, `priority=2`; 2회 이상 반복 감지는 `repeat_count>=2`, `priority=1`로 반영한다.
 
 - [ ] **T-14. Event router 작성**
   - 목표: Event 엔드포인트를 `routers/events.py`로 분리한다.
   - 참조: `docs/architecture/05_architecture_planning_02.md`
-  - DoD: 생성, 목록, 상세, 상태 변경 라우트가 동작한다.
+  - DoD: 공식 경로 `GET /api/events`, `GET /api/events/{eventId}`, `PATCH /api/events/{eventId}/status`가 동작한다. 상태 변경 요청은 `{ status, comment? }` 형태이며 `status`는 영문 enum으로 받는다.
 
 - [ ] **T-15. Equipment 기준 데이터 준비**
   - 목표: 이벤트 생성 테스트에 필요한 기본 장비 데이터를 준비한다.
@@ -136,7 +146,7 @@
 
 다음 항목은 이번 MVP 작업 티켓으로 만들지 않는다.
 
-- [ ] AI 모델 학습/추론 구현
+- [ ] AI 모델 학습 구현
 - [ ] 프론트엔드 화면 디자인 구현
 - [ ] 통계/분석 대시보드
 - [ ] 대규모 분산 처리/고가용성 구성

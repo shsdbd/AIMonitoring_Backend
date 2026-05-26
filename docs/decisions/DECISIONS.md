@@ -40,7 +40,8 @@
 - **Equipment 역할:** `Equipment`는 CCTV 또는 드론 등 탐지 장비를 나타내며, 이벤트 발생 장비를 식별하는 데 사용한다.
 - **Comment 역할:** `Comment`는 관제사가 이벤트에 남기는 처리 기록, 확인 메모, 오탐 사유를 나타내며, MVP 조건부 포함 기능으로 둔다.
 - **최종 관계:** `User -> Event`, `Equipment -> Event`, `User -> Comment`, `Event -> Comment` 네 관계만 정의한다.
-- **Event 핵심 속성:** `equipment_id`, `user_id`, `obstacle_type`, `confidence`, `latitude`, `longitude`, `status`, `image_url`, `bbox_x`, `bbox_y`, `bbox_width`, `bbox_height`, `priority`, `detected_at`을 Event의 핵심 논리 속성으로 둔다.
+- **Equipment 핵심 표시 속성:** 프론트 `cameraId` 응답을 위해 `camera_id`를 Equipment의 핵심 속성으로 둔다.
+- **Event 핵심 속성:** `equipment_id`, `user_id`, `obstacle_type`, `species`, `confidence`, `latitude`, `longitude`, `status`, `image_url`, `bbox_x`, `bbox_y`, `bbox_width`, `bbox_height`, `priority`, `detected_at`, `repeat_detection`, `repeat_count`, `last_detected_at`을 Event의 핵심 논리 속성으로 둔다.
 - **도메인 제외:** `Detection`, `EventStatusHistory`, `Equipment` 자체 지도 좌표, 복잡한 권한/권한 그룹 모델은 MVP 제외 범위에 따라 도메인 모델에 포함하지 않는다.
 - **최종 도메인 모델 명세서:** 도메인 모델링 최종 산출물은 `docs/domain/04_domain_modeling_06.md`를 기준으로 한다.
 
@@ -60,12 +61,15 @@
 - **최종 물리 테이블:** PostgreSQL 물리 테이블은 `users`, `equipment`, `events`, `comments` 네 개로 설계한다.
 - **PK 정책:** 모든 테이블은 `SERIAL PRIMARY KEY` 형식의 독립 `id`를 가진다.
 - **장비 종류 컬럼명:** 장비 종류 컬럼은 `equipment.equipment_type`으로 통일한다.
+- **장비 표시 식별자:** 프론트 `cameraId` 응답을 위해 `equipment.camera_id`를 `VARCHAR(50) NOT NULL UNIQUE`로 둔다.
 - **Event 핵심 FK:** `events.equipment_id`는 `equipment.id`를 참조하는 `NOT NULL` FK이고, `events.user_id`는 `users.id`를 참조하는 nullable FK다.
 - **FK 삭제 정책:** `events.equipment_id`는 `ON DELETE RESTRICT`, `events.user_id`는 `ON DELETE SET NULL`, `comments.event_id`는 `ON DELETE CASCADE`, `comments.user_id`는 `ON DELETE RESTRICT`로 설계한다.
 - **Event 좌표 타입:** `events.latitude`와 `events.longitude`는 `FLOAT NOT NULL`로 설계한다.
-- **Event bbox 타입:** `events.bbox_x`, `events.bbox_y`, `events.bbox_width`, `events.bbox_height`는 `FLOAT NOT NULL`로 설계한다.
-- **Event priority 타입:** `events.priority`는 `INTEGER NOT NULL`로 설계하고, 최소 제약은 `priority >= 1`로 둔다.
-- **Event 상태값:** `UNCHECKED`, `CHECKING`, `COMPLETED`, `MISIDENTIFIED`만 허용한다.
+- **Event species 타입:** AI 모델이 탐지한 세부 종(`gorani`, `wild_boar`, `raccoon`)은 `events.species`에 저장하고, `events.obstacle_type`은 상위 유형인 `ANIMAL`로 저장한다.
+- **Event bbox 타입:** `events.bbox_x`, `events.bbox_y`, `events.bbox_width`, `events.bbox_height`는 `FLOAT NOT NULL`로 설계하고, 프론트 계약에 따라 0~100 퍼센트 좌표/좌상단 기준으로 관리한다.
+- **Event priority 타입:** `events.priority`는 `INTEGER NOT NULL`로 설계하고, 허용값은 `1`, `2`, `3`으로 둔다.
+- **Event 반복 감지 필드:** `events.repeat_detection`은 `BOOLEAN NOT NULL DEFAULT FALSE`, `events.repeat_count`는 `INTEGER NOT NULL DEFAULT 0`, `events.last_detected_at`은 `TIMESTAMPTZ NOT NULL DEFAULT NOW()`로 둔다.
+- **Event 상태값:** 프론트 관제 흐름에 맞춰 `UNCHECKED`, `CHECKING`, `DISPATCH_REQUESTED`, `DISPATCHING`, `COMPLETED`, `MISIDENTIFIED` 6개를 허용한다.
 - **주요 인덱스:** 최신 이벤트 목록, 상태별 이벤트 조회, 장비/사용자별 이벤트 조회, 이벤트별 코멘트 조회를 위해 `events.detected_at`, `events.status`, `events.equipment_id`, `events.user_id`, `events.priority`, `(events.status, events.detected_at)`, `comments.event_id`, `comments.user_id`, `(comments.event_id, comments.created_at)`에 인덱스를 둔다.
 - **공간 인덱스 제외:** MVP에서는 위도/경도를 검색 조건이 아닌 지도 표시 데이터로 사용하므로 PostGIS 또는 공간 인덱스는 도입하지 않는다.
 - **최종 데이터베이스 설계서:** 데이터베이스 설계 최종 산출물은 `docs/database/06_database_design_06.md`를 기준으로 한다.
@@ -78,7 +82,7 @@
 - **핵심 API 티켓:** Event 스키마, Event service, Event router, 공통 DB dependency, 이미지 저장 모듈, 공통 에러 처리를 구현 티켓으로 둔다.
 - **검증 티켓:** Swagger 검증, curl 통합 검증, PostgreSQL 직접 확인을 별도 티켓으로 둔다.
 - **조건부 티켓:** Comment 작성/조회 API, 단순 AI 요청 검증 dependency, 단순 관제사 접근 통제는 Must-have 흐름 안정화 이후 포함 여부를 결정한다.
-- **제외 티켓:** AI 모델 학습/추론, 프론트 디자인, 통계/분석 대시보드, 대규모 분산 처리/고가용성, 다중 객체 Detection, EventStatusHistory, Equipment 자체 좌표, 복잡한 권한 관리, 관리자용 사용자/장비 관리 고도화는 티켓으로 만들지 않는다.
+- **제외 티켓:** AI 모델 학습, 프론트 디자인, 통계/분석 대시보드, 대규모 분산 처리/고가용성, 다중 객체 Detection 테이블, EventStatusHistory, Equipment 자체 좌표, 복잡한 권한 관리, 관리자용 사용자/장비 관리 고도화는 티켓으로 만들지 않는다. 단, 전달받은 `ai_model`의 추론 코드와 `best.pt`를 FastAPI 내부 모듈로 통합하는 작업은 백엔드 구현 범위에 포함할 수 있다.
 - **최종 작업 백로그:** 작업 분해 최종 산출물은 `docs/tasks/07_task_breakdown_06.md`를 기준으로 한다.
 
 ## 9. 구현 지시서 작성 단계 결정
@@ -89,7 +93,33 @@
 - **검증 기준:** `python -m compileall database.py models` 성공 및 SQLAlchemy metadata에 `users`, `equipment`, `events`, `comments` 테이블 포함을 완료 기준으로 둔다.
 - **최종 개발 지시서:** 첫 구현 프롬프트 최종 산출물은 `docs/implementation/08_implementation_prompt_writer_05.md`를 기준으로 한다.
 
-## 10. 데이터베이스 아키텍처 및 데이터 모델 정책
+## 10. 프론트엔드 API 계약 결정
+- **프론트 응답 기준:** 프론트엔드는 기존 `RoadkillEvent` 타입을 유지하고, 백엔드는 API 응답 DTO에서 내부 DB 값을 프론트 타입에 맞게 가공해 내려준다.
+- **API prefix:** 공식 프론트 연동 API prefix는 `/api`로 정한다. 기존 `/api/v1` 경로는 초기 프로토타입 산물이며, 필요하면 개발 기간 동안 호환 라우트로 유지할 수 있다.
+- **이벤트 목록 API:** 이벤트 목록 조회 공식 경로는 `GET /api/events`로 정한다.
+- **이벤트 상세 API:** 이벤트 상세 조회 공식 경로는 `GET /api/events/{eventId}`로 정한다.
+- **상태 변경 API:** 이벤트 상태 변경 공식 경로는 `PATCH /api/events/{eventId}/status`로 정한다.
+- **상태 변경 body:** 상태 변경 요청 body는 `{ status, comment? }` 형태로 정한다. `comment`는 선택값이며, 값이 있으면 처리 기록으로 저장하는 방향을 기본으로 한다.
+- **상태 enum:** 백엔드 내부 상태값은 `UNCHECKED`, `CHECKING`, `DISPATCH_REQUESTED`, `DISPATCHING`, `COMPLETED`, `MISIDENTIFIED` 6개로 정한다. 프론트 `RoadkillEvent.status` 응답에서는 반드시 `미확인`, `확인 중`, `출동 요청`, `출동 중`, `처리 완료`, `오탐 처리` 한글 상태값으로 매핑해 내려준다.
+- **상태 변경 입력값:** 상태 변경 요청 body의 `status`는 프론트가 한글 상태값을 영문 enum으로 변환해서 보내며, 백엔드는 영문 enum을 입력으로 받는다.
+- **priority/riskLevel 매핑:** `priority=1`은 `즉시 확인`, `priority=2`는 `순차 확인`, `priority=3`은 `후순위 확인`으로 매핑한다.
+- **location 응답:** 프론트 `RoadkillEvent.location`은 `Equipment.location_name`을 내려주는 방향으로 정한다.
+- **cameraId 응답:** 프론트 `RoadkillEvent.cameraId` 제공을 위해 `Equipment`에 표시용 장비 식별자 필드(`camera_id`)를 추가하는 방향으로 정한다.
+- **imageUrl 응답:** 백엔드는 `/static/images/...` 상대경로를 내려주고, 프론트가 백엔드 origin을 붙여 처리한다.
+- **boundingBox 기준:** bbox는 0~100 퍼센트 좌표, 좌상단 기준으로 정한다. DB에는 `bbox_x`, `bbox_y`, `bbox_width`, `bbox_height`로 저장하고 응답에서는 `{ x, y, width, height }`로 묶어 내려준다.
+- **AI 모델 통합 방식:** AI 서버를 별도로 띄우지 않고, 전달받은 `ai_model` 폴더의 YOLOv8 추론 코드를 백엔드 내부 모듈로 분리 통합하는 방향으로 정한다. 서버는 하나로 유지하되, AI 추론 코드는 `main.py`나 DB 모델에 섞지 않고 별도 모듈로 둔다.
+- **사용 모델:** 추론에는 `ai_model/runs/animal_detector_yolov8n/weights/best.pt`를 사용한다.
+- **confidence threshold:** AI 탐지 인정 기준은 우선 `0.3`으로 정한다.
+- **AI 입력 이미지 형식:** 백엔드 내장 YOLO 추론 입력 이미지는 우선 `png`, `jpeg/jpg` 포맷을 허용한다.
+- **AI 출력 bbox 변환:** 전달받은 `test.py`의 bbox는 중심점 기준 0~1 정규화 좌표이므로, 백엔드 저장/프론트 응답 전 좌상단 기준 0~100 퍼센트 좌표로 변환한다.
+- **다중 객체 처리:** 한 이미지에서 여러 객체가 탐지되면 객체별로 여러 Event를 생성한다. 같은 이미지에서 파생된 Event들은 동일한 `image_url`을 공유한다.
+- **반복 감지 판정:** 반복 감지는 백엔드가 수행한다. 같은 `camera_id`, 같은 `species`, 같은 bbox 중심점의 객체가 1분 이상 간격으로 다시 감지되면 기존 이벤트를 갱신한다.
+- **반복 감지 이벤트 갱신:** 최초 감지는 `repeat_count=0`, `repeat_detection=false`, `priority=3`으로 생성한다. 1회 반복 감지 시 기존 이벤트를 `repeat_count=1`, `repeat_detection=true`, `priority=2`, `last_detected_at=현재 시각`으로 갱신한다. 2회 이상 반복 감지 시 기존 이벤트를 `repeat_count>=2`, `repeat_detection=true`, `priority=1`, `last_detected_at=현재 시각`으로 갱신한다.
+- **priority 산출 기준:** priority는 백엔드가 반복 감지 횟수 기준으로 산출한다. `repeat_count=0 -> priority=3`, `repeat_count=1 -> priority=2`, `repeat_count>=2 -> priority=1`로 정한다.
+- **RoadkillEvent 필수 응답 필드:** 최종 이벤트 목록/상세 응답 DTO에는 `cameraId`, `repeatDetection`, `lastDetectedAt`을 반드시 포함한다.
+- **프론트 계약 문서:** 프론트 API 계약 패치 문서는 `docs/contracts/09_frontend_api_contract_01.md`를 기준으로 한다.
+
+## 11. 데이터베이스 아키텍처 및 데이터 모델 정책
 - **테이블 관계 표준:** 모든 테이블 관계는 부모 엔티티의 식별자가 자식 엔티티의 기본키(PK)에 포함되지 않는 **비식별 관계(Non-Identifying Relationship, 분홍색 점선)**를 따르며, 모든 테이블은 독립적인 대리키(`id`, SERIAL/INTEGER PK)를 가진다.
 - **카디널리티 표준:** 부모 데이터가 생성될 때 자식 데이터가 존재하지 않는 상태를 인정하기 위해 모든 관계선의 카디널리티는 **`Zero or Many` (0개 이상 허용)**로 통일한다.
 - **기준 ERD 문서:** `erd0519.jpg`를 판독해 `docs/erd/erd0519_extracted.md`로 추출했으며, 이후 도메인/DB 설계 단계의 참고 자료로 사용한다.
